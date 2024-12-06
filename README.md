@@ -37,4 +37,4 @@ For detailed instructions, you can find a quickstart for the Google AI client SD
 This quickstart describes how to add your API key and the SDK's dependency to your app, initialize the model, and then call the API to access the model. It also describes some additional use cases and features, like streaming, counting tokens, and controlling responses.
 
 Documentation
-See the Gemini API Cookbook or ai.google.dev for complete documentation.
+See the Gemini API [Cookbook ](https://github.com/google-gemini/cookbook)or [https://ai.google.dev/](https://ai.google.dev/) for complete documentation.
