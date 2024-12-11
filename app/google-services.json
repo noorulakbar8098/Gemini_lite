@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "272145027274",
+    "project_id": "gemini-e2057",
+    "storage_bucket": "gemini-e2057.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:272145027274:android:bbf644a7f4ba50d8976433",
+        "android_client_info": {
+          "package_name": "com.example.gemini_lite"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "272145027274-bh8quellng71opebhfamfsltjlt5e4as.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.gemini_lite",
+            "certificate_hash": "06de97446eca119da09d12cc01e95f9449b5db2f"
+          }
+        },
+        {
+          "client_id": "272145027274-gocl44lg5uk40q6m33kk23bi010pboju.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBS2IF96weFUIRybrdo7yZXaG_tmr7Xjx8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "272145027274-gocl44lg5uk40q6m33kk23bi010pboju.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

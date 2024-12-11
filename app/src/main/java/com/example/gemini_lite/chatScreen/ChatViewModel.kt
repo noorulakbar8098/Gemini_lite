@@ -1,33 +1,37 @@
-package com.example.gemini_lite
+package com.example.gemini_lite.chatScreen
 
 import android.content.Context
 import android.os.Build.VERSION_CODES
 import android.util.Log
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.gemini_lite.constants.apiKey
+import com.example.gemini_lite.MessageModel
+import com.example.gemini_lite.common.clearLoginState
+import com.example.gemini_lite.common.constants.apiKey
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class ChatViewModel: ViewModel() {
-    var messageInput by mutableStateOf(MessageData())
-        private set
     val messageList by lazy {
         mutableStateListOf<MessageModel>()
     }
-    val text by lazy { mutableStateOf("") }
-    val generateModel : GenerativeModel = GenerativeModel(
+    private val generateModel : GenerativeModel = GenerativeModel(
         modelName = "gemini-pro",
         apiKey = apiKey
     )
+
+    fun handleLogout(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            clearLoginState(context)
+        }
+    }
 
     @RequiresApi(VERSION_CODES.VANILLA_ICE_CREAM)
     fun sendMessage(message: String, context: Context) {
@@ -53,12 +57,6 @@ class ChatViewModel: ViewModel() {
                 }
                 messageList.add(MessageModel("Generating... + ${e.message}", "model"))
             }
-
         }
-
     }
 }
-
-data class MessageData(
-    val text: String? = ""
-)

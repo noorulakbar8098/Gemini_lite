@@ -8,6 +8,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_gemini"
         android:label="@string/app_name"
+        android:name=".common.MyApplication"
         android:roundIcon="@mipmap/ic_gemini"
         android:supportsRtl="true"
         android:theme="@style/Theme.Gemini_lite"

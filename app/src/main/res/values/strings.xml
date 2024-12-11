@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Gemini</string>
+    <string name="gemini_text">Chat With</string>
+    <string name="gemini_text2">Gemini to</string>
+    <string name="gemini_text3">Supercharge</string>
+    <string name="gemini_text4">your ideas</string>
+    <string name="client_id">272145027274-gmo9sqdtcdpahumbo4ccmergdeou14hd.apps.googleusercontent.com</string>
 </resources>

@@ -1,6 +1,5 @@
-package com.example.gemini_lite
+package com.example.gemini_lite.chatScreen
 
-import android.R.attr
 import android.os.Build.VERSION_CODES
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
@@ -20,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardActions.Companion
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -46,6 +44,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +53,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gemini_lite.MessageModel
+import com.example.gemini_lite.R
 import kotlinx.coroutines.delay
 
 
@@ -73,9 +74,9 @@ fun ChatScreen(
     )
     var text by remember { mutableStateOf("") }
     var debouncedText by remember { mutableStateOf("") }
-
+    val keyboardController = LocalSoftwareKeyboardController.current
     LaunchedEffect(text) {
-        delay(300) // Add a delay to debounce the text input
+        delay(300)
         debouncedText = text
     }
     Column(
@@ -101,15 +102,14 @@ fun ChatScreen(
                 textAlign = TextAlign.Center
             )
         } else {
-            messageList(
+            MessageList(
                 modifier = Modifier.weight(1f),
                 messageList = viewModel.messageList)
         }
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 30.dp)
-                .padding(16.dp),
+                .padding(bottom = 10.dp, start = 16.dp, end = 16.dp),
             shape = RoundedCornerShape(16.dp),
             color = Color(0xFF333333)
         ) {
@@ -119,7 +119,7 @@ fun ChatScreen(
                     onValueChange = { text = it  },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
                     cursorBrush = SolidColor(Color.White),
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done, // Set the action button to "Done"
@@ -180,7 +180,9 @@ fun ChatScreen(
                         IconButton(
                             onClick = {
                                 viewModel.sendMessage(text, context)
-                                text = ""},
+                                text = ""
+                                keyboardController?.hide()
+                                      },
                             modifier = Modifier
                         ) {
                             Icon(
@@ -197,7 +199,7 @@ fun ChatScreen(
 }
 
 @Composable
-fun messageList(
+fun MessageList(
     modifier: Modifier,
     messageList: List<MessageModel>
 ) {
@@ -206,13 +208,13 @@ fun messageList(
         reverseLayout = true
     ) {
         items(messageList.reversed()) {
-            messageRow(messageModel = it)
+            MessageRow(messageModel = it)
         }
     }
 }
 
 @Composable
-fun messageRow(messageModel: MessageModel) {
+fun MessageRow(messageModel: MessageModel) {
     val isModel = messageModel.role == "model"
     Row(
         verticalAlignment = Alignment.CenterVertically
@@ -220,10 +222,7 @@ fun messageRow(messageModel: MessageModel) {
         Box(modifier = Modifier.fillMaxWidth() ) {
             Box(modifier = Modifier
                 .align(
-                    if (isModel)
-                        Alignment.BottomStart
-                    else
-                        Alignment.BottomEnd
+                    if (isModel) Alignment.BottomStart else Alignment.BottomEnd
                 )
                 .padding(
                     start = if (isModel) 8.dp else 70.dp,
