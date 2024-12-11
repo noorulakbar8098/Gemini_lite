@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +33,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,10 +44,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -58,8 +64,8 @@ import com.example.gemini_lite.R
 import kotlinx.coroutines.delay
 
 
-@RequiresApi(VERSION_CODES.VANILLA_ICE_CREAM)
 @OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel
@@ -83,7 +89,7 @@ fun ChatScreen(
         modifier = Modifier
             .fillMaxSize()
             .imePadding()
-            .background(Color.Black),
+            .background(Color(0xFF181A1C)),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         if (viewModel.messageList.isEmpty()) {
@@ -94,11 +100,10 @@ fun ChatScreen(
                 text = "What can I help with?",
                 style = TextStyle(
                     brush = gradient,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.W500,
                     fontSize = 26.sp
                 ),
                 fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
         } else {
@@ -109,7 +114,13 @@ fun ChatScreen(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 10.dp, start = 16.dp, end = 16.dp),
+                .padding(bottom = 18.dp, start = 16.dp, end = 16.dp)
+                .shadow(
+                    elevation = 9.dp, // Elevation for the shadow
+                    shape = RoundedCornerShape(16.dp), // Same shape as Surface
+                    ambientColor = Color.White, // White shadow color
+                    spotColor = Color.White // Additional white shadow color for spot light
+                ),
             shape = RoundedCornerShape(16.dp),
             color = Color(0xFF333333)
         ) {

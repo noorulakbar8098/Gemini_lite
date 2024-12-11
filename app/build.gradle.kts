@@ -75,4 +75,6 @@ dependencies {
     implementation( libs.androidx.credentials.play.services.auth)
     implementation (libs.googleid)
     implementation ("com.google.ai.client.generativeai:generativeai:0.9.0")
+    implementation ("androidx.room:room-runtime:2.4.2")
+    implementation ("androidx.room:room-ktx:2.4.2")
 }

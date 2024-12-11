@@ -38,7 +38,7 @@ import com.example.gemini_lite.chatScreen.ChatViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun AppDrawer(viewModel: ChatViewModel, onDestinationClicked: @Composable (String) -> Unit) {
+fun AppDrawer(viewModel: ChatViewModel, onDestinationClicked:  (String) -> Unit) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     ModalNavigationDrawer(
@@ -48,7 +48,7 @@ fun AppDrawer(viewModel: ChatViewModel, onDestinationClicked: @Composable (Strin
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(end = 100.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(Color (0xFF181A1C))
             ) {
                 DrawerHeader()
                 DrawerMenuItems { destination ->
@@ -75,7 +75,7 @@ fun DrawerHeader() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.LightGray)
+            .background(Color (0xFF181A1C))
             .padding(top =  50.dp)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -138,7 +138,7 @@ fun DrawerMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSecondary
         )
     }
 }
