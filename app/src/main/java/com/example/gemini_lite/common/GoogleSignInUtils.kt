@@ -3,6 +3,7 @@ package com.example.gemini_lite.common
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.ActivityResult
 import androidx.credentials.CredentialManager
@@ -22,15 +23,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class GoogleSignInUtils {
-
     companion object {
         fun doGoogleSignIn(
             context: Context,
             scope: CoroutineScope,
             launcher: ManagedActivityResultLauncher<Intent, ActivityResult>?,
-            login: () -> Unit
+            login: (String?, String?, String?) -> Unit // Updated to pass name and email
         ) {
-            // Ensure Firebase is initialized
             if (FirebaseApp.getApps(context).isEmpty()) {
                 FirebaseApp.initializeApp(context)
             }
@@ -46,20 +45,31 @@ class GoogleSignInUtils {
                     when (result.credential) {
                         is CustomCredential -> {
                             if (result.credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
+                                val googleIdTokenCredential =
+                                    GoogleIdTokenCredential.createFrom(result.credential.data)
                                 val googleTokenId = googleIdTokenCredential.idToken
-                                val authCredential = GoogleAuthProvider.getCredential(googleTokenId, null)
-
-                                // Safe access Firebase Auth
-                                val user = FirebaseAuth.getInstance().signInWithCredential(authCredential).await().user
+                                val authCredential =
+                                    GoogleAuthProvider.getCredential(googleTokenId, null)
+                                val user =
+                                    FirebaseAuth.getInstance().signInWithCredential(authCredential)
+                                        .await().user
                                 user?.let {
-                                    if (it.isAnonymous.not()) {
+                                    if (!it.isAnonymous) { // Retrieve user's name and email
+                                        val userName = it.displayName
+                                        val userEmail = it.email
+                                        val userProfilePic = it.photoUrl.toString()
+                                        Log.d(
+                                            "Google account",
+                                            "username :$userName + email:$userEmail"
+                                        )
                                         setLoggedIn(context, true)
-                                        login.invoke()
+                                        // Pass name and email to login callback
+                                        login.invoke(userName, userEmail, userProfilePic)
                                     }
                                 }
                             }
                         }
+
                         else -> {
                             // Handle other cases
                         }
@@ -86,5 +96,5 @@ class GoogleSignInUtils {
                 .build()
         }
     }
-
 }
+

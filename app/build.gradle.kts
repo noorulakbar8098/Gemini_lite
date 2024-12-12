@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
+    id("kotlin-kapt")
 }
 
 android {
@@ -60,6 +61,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.datastore.core.android)
+    implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -69,12 +71,26 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
-    implementation ("androidx.multidex:multidex:2.0.1")
-    implementation ("androidx.datastore:datastore-preferences:1.0.0")
-    implementation (libs.androidx.credentials)
-    implementation( libs.androidx.credentials.play.services.auth)
-    implementation (libs.googleid)
-    implementation ("com.google.ai.client.generativeai:generativeai:0.9.0")
-    implementation ("androidx.room:room-runtime:2.4.2")
-    implementation ("androidx.room:room-ktx:2.4.2")
+    implementation("androidx.multidex:multidex:2.0.1")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    // ViewModel & LiveData
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+
+// Compose
+    implementation("androidx.compose.ui:ui:1.5.4")
+    implementation("androidx.compose.material:material:1.5.4")
+
+// Room
+    implementation("androidx.room:room-runtime:2.5.2")
+    //noinspection KaptUsageInsteadOfKsp
+    kapt("androidx.room:room-compiler:2.5.2")
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.2")
+
 }

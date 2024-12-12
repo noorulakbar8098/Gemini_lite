@@ -1,6 +1,6 @@
 package com.example.gemini_lite.chatScreen
 
-import android.widget.Toast
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -33,12 +34,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.gemini_lite.R
 import com.example.gemini_lite.common.GoogleSignInUtils
 import com.example.gemini_lite.common.isLoggedIn
 
 @Composable
-fun LoginScreen(modifier: Modifier = Modifier) {
+fun LoginScreen(
+    navController: NavController,
+    viewModel: ChatViewModel
+) {
     val context = LocalContext.current
     val loggedInState by isLoggedIn(context).collectAsState(initial = false)
     val scope = rememberCoroutineScope()
@@ -59,8 +64,19 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                 context = context,
                 scope = scope,
                 launcher = null,
-                login = {
-                    Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
+                login = { userName, userEmail, userProfilePic ->
+                    if (userName != null && userEmail != null) {
+                        Log.d("GoogleSignIn", "Logged in User Name: $userName")
+                        Log.d("GoogleSignIn", "Logged in User Email: $userEmail")
+                        if (userProfilePic != null) {
+                            viewModel.saveUserDetails(userName, userEmail, userProfilePic)
+                        }
+                        navController.navigate("home_Screen") {
+                            popUpTo("login_screen") { inclusive = true }
+                        }
+                    } else {
+                        Log.e("GoogleSignIn", "Failed to fetch user details")
+                    }
                 }
             )
         }
@@ -70,13 +86,7 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .background(Color.White)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 16.dp, bottom = 80.dp),
-                verticalArrangement = Arrangement.Bottom,
-                horizontalAlignment = Alignment.Start
-            ) {
+            Column {
                 Text(
                     text = buildAnnotatedString {
                         withStyle(style = SpanStyle(brush = gradient)) {
@@ -85,51 +95,76 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                     },
                     fontSize = 48.sp,
                     fontWeight = FontWeight.W400,
-                    modifier = Modifier.padding(start = 16.dp, top = 100.dp)
+                    modifier = Modifier.padding(start = 20.dp, top = 50.dp)
                 )
-
-                // Example Gemini text
-                listOf(
-                    R.string.gemini_text,
-                    R.string.gemini_text2,
-                    R.string.gemini_text3,
-                    R.string.gemini_text4
-                ).forEach { textRes ->
-                    Text(
-                        text = stringResource(id = textRes),
-                        fontSize = 50.sp,
-                        fontWeight = FontWeight.W400,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        GoogleSignInUtils.doGoogleSignIn(
-                            context = context,
-                            scope = scope,
-                            launcher = launcher,
-                            login = {
-                                Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    },
-                    modifier = Modifier.padding(top = 16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 40.dp, bottom = 80.dp),
+                    verticalArrangement = Arrangement.Bottom,
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.google),
-                            contentDescription = "Google Icon",
-                            modifier = Modifier.size(34.dp)
+                    listOf(
+                        R.string.gemini_text,
+                        R.string.gemini_text2,
+                        R.string.gemini_text3,
+                        R.string.gemini_text4
+                    ).forEach { textRes ->
+                        Text(
+                            text = stringResource(id = textRes),
+                            fontSize = 50.sp,
+                            fontWeight = FontWeight.W400,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
-                        Text(text = "Google Sign in", color = Color.Black)
+                    }
+                    Button(
+                        onClick = {
+                            GoogleSignInUtils.doGoogleSignIn(
+                                context = context,
+                                scope = scope,
+                                launcher = launcher,
+                                login = { userName, userEmail, userProfilePic ->
+                                    if (userName != null && userEmail != null) {
+                                        Log.d("GoogleSignIn", "Logged in User Name: $userName")
+                                        Log.d("GoogleSignIn", "Logged in User Email: $userEmail")
+                                        if (userProfilePic != null) {
+                                            viewModel.saveUserDetails(
+                                                userName,
+                                                userEmail,
+                                                userProfilePic
+                                            )
+                                        }
+                                        navController.navigate("home_Screen") {
+                                            popUpTo("login_screen") { inclusive = true }
+                                        }
+                                    } else {
+                                        Log.e("GoogleSignIn", "Failed to fetch user details")
+                                    }
+                                }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp, end = 50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Unspecified)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.google),
+                                contentDescription = "Google Icon",
+                                modifier = Modifier.size(34.dp)
+                            )
+                            Text(text = "Google Sign in", color = Color.White)
+                        }
                     }
                 }
+
             }
+
+
         }
     }
 }

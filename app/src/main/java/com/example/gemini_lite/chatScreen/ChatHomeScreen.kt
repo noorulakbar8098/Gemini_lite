@@ -1,8 +1,8 @@
 package com.example.gemini_lite.chatScreen
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,36 +12,34 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.MailOutline
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.gemini_lite.R
+import coil.compose.AsyncImage
 
 @SuppressLint("NewApi")
 @Composable
 fun ChatHomeScreen(viewModel: ChatViewModel, openDrawer: () -> Unit) {
     val context = LocalContext.current
+    val userDetail by viewModel.userDetails.collectAsState()
     Scaffold(
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
@@ -58,8 +56,8 @@ fun ChatHomeScreen(viewModel: ChatViewModel, openDrawer: () -> Unit) {
                     .shadow(
                         elevation = 8.dp, // Adjust shadow elevation
                         shape = RectangleShape, // Top bar typically uses a rectangular shape
-                        ambientColor = Color.White.copy(alpha = 0.2f), // Subtle black shadow
-                        spotColor = Color.White.copy(alpha = 0.3f)
+                        ambientColor = Color.Blue.copy(alpha = 0.2f), // Subtle black shadow
+                        spotColor = Color.Green.copy(alpha = 0.3f)
                     )
                     .background(Color(0xFF181A1C)) // Match top bar background color
             ) {
@@ -86,12 +84,14 @@ fun ChatHomeScreen(viewModel: ChatViewModel, openDrawer: () -> Unit) {
                         )
                     )
 
-                    Image(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50f))
-                            .size(35.dp),
-                        painter = painterResource(id = R.drawable.google),
+
+                    AsyncImage(
+                        model = userDetail?.profileUrl,
                         contentDescription = "Profile Image",
+                        modifier = Modifier
+                            .size(35.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color.Transparent, CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 }
