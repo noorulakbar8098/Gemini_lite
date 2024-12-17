@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -20,35 +21,34 @@ import com.example.gemini_lite.DB.MessageDatabase
 import com.example.gemini_lite.chatScreen.ChatViewModel
 import com.example.gemini_lite.chatScreen.LoginScreen
 import com.example.gemini_lite.common.isLoggedIn
-import com.example.gemini_lite.navigationDrawer.AppDrawer
+import com.example.gemini_lite.navigationDrawer.HomeScreen
 import com.example.gemini_lite.ui.theme.Gemini_liteTheme
 
 class MainActivity : ComponentActivity() {
     private lateinit var database: MessageDatabase
+    private lateinit var galleryLauncher: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
+        database = MessageDatabase.getInstance(applicationContext)
         setContent {
-            database = MessageDatabase.getInstance(applicationContext)
+            val context = LocalContext.current
+            val loggedInState by isLoggedIn(context).collectAsState(initial = false) // Observe login state
+            val startDestination = if (loggedInState) "home_screen" else "login_screen"
             val viewModel: ChatViewModel = viewModel(
-                factory = ChatViewModelFactory(database.messageDao())
+                factory = ChatViewModelFactory(database.messageDao(), this)
             )
             Gemini_liteTheme {
-                val context = LocalContext.current
                 val navController = rememberNavController()
-                val loggedInState by isLoggedIn(context).collectAsState(initial = false)
-
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = if (loggedInState) "home_screen" else "login_screen",
+                        startDestination = startDestination,
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        // Login Screen
                         composable("login_screen") {
                             LoginScreen(
                                 navController = navController,
@@ -56,20 +56,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Home Screen with App Drawer
                         composable("home_screen") {
-                            AppDrawer(
+                            HomeScreen(
                                 navController = navController,
-                                viewModel = viewModel,
-                                onDestinationClicked = { destination ->
-                                    if (destination == "Logout") {
-                                        viewModel.handleLogout(context)
-                                        viewModel.clearChatHistory()
-                                        navController.navigate("login_screen") {
-                                            popUpTo("home_screen") { inclusive = true }
-                                        }
-                                    }
-                                }
+                                viewModel = viewModel
                             )
                         }
                     }
@@ -78,3 +68,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+
+
+
+
+
+

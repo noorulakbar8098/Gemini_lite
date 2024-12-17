@@ -3,9 +3,15 @@ package com.example.gemini_lite.DB
 import android.content.Context
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.gemini_lite.MessageModel
+import androidx.room.TypeConverters
+import com.example.gemini_lite.common.Converters
 
-@Database(entities = [MessageModel::class], version = 1)
+@Database(
+    entities = [Messages::class, ChatHistory::class, MessageModel::class, ProfileData::class],
+    version = 1,
+    exportSchema = false
+)
+@TypeConverters(Converters::class)
 abstract class MessageDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao
 
@@ -18,7 +24,7 @@ abstract class MessageDatabase : RoomDatabase() {
                 val instance = androidx.room.Room.databaseBuilder(
                     context.applicationContext,
                     MessageDatabase::class.java,
-                    "message_db"
+                    "message_db",
                 ).build()
                 INSTANCE = instance
                 instance

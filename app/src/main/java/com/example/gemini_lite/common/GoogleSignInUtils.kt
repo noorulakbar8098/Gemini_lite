@@ -28,7 +28,7 @@ class GoogleSignInUtils {
             context: Context,
             scope: CoroutineScope,
             launcher: ManagedActivityResultLauncher<Intent, ActivityResult>?,
-            login: (String?, String?, String?) -> Unit // Updated to pass name and email
+            login: (Int, String?, String?, String?) -> Unit // Updated to pass name and email
         ) {
             if (FirebaseApp.getApps(context).isEmpty()) {
                 FirebaseApp.initializeApp(context)
@@ -58,13 +58,14 @@ class GoogleSignInUtils {
                                         val userName = it.displayName
                                         val userEmail = it.email
                                         val userProfilePic = it.photoUrl.toString()
+                                        val id = 1
                                         Log.d(
                                             "Google account",
                                             "username :$userName + email:$userEmail"
                                         )
                                         setLoggedIn(context, true)
                                         // Pass name and email to login callback
-                                        login.invoke(userName, userEmail, userProfilePic)
+                                        login.invoke(id, userName, userEmail, userProfilePic)
                                     }
                                 }
                             }

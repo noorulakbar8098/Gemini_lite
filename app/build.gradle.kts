@@ -33,6 +33,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+    kapt {
+        correctErrorTypes = true
+    }
     kotlinOptions {
         jvmTarget = "1.8"
     }
@@ -62,6 +65,7 @@ dependencies {
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.datastore.core.android)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.firebase.crashlytics.buildtools)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -71,26 +75,38 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
-    implementation("androidx.multidex:multidex:2.0.1")
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation(libs.androidx.multidex)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    implementation(libs.generativeai)
     // ViewModel & LiveData
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    implementation(libs.androidx.lifecycle.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
 // Compose
-    implementation("androidx.compose.ui:ui:1.5.4")
-    implementation("androidx.compose.material:material:1.5.4")
+    implementation(libs.ui)
+    implementation(libs.androidx.material)
 
 // Room
-    implementation("androidx.room:room-runtime:2.5.2")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     //noinspection KaptUsageInsteadOfKsp
-    kapt("androidx.room:room-compiler:2.5.2")
-    implementation("io.coil-kt:coil-compose:2.4.0")
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.coil.compose)
 
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.2")
+    implementation(libs.androidx.lifecycle.lifecycle.viewmodel.ktx)
+
+    implementation(libs.androidx.camera.core.v130)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.activity.compose.v161)
+    implementation(libs.accompanist.permissions)
+
+    implementation(libs.converter.gson)
+
+//    implementation( libs.permissions) // Camera permissions
 
 }

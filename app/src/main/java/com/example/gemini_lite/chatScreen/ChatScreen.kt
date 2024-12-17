@@ -16,7 +16,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,21 +28,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.Icons.AutoMirrored.Filled
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -51,11 +45,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,7 +58,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -77,12 +68,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.example.gemini_lite.MessageModel
 import com.example.gemini_lite.R
-import com.example.gemini_lite.common.DotsTyping
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.util.Locale
 
 
@@ -93,10 +79,14 @@ fun ChatScreen(
     viewModel: ChatViewModel
 ) {
     val context = LocalContext.current
-
+    val sessionId by viewModel.sessionId.collectAsState()
     val messageList by viewModel.messageList.collectAsState()
-    val userDetail by viewModel.userDetails.collectAsState()
-    val isTyping by viewModel.isTyping.collectAsState()
+    val chatHistory by viewModel.chatHistories.collectAsState()
+    val userDetail by viewModel.profileData.collectAsState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var text by remember { mutableStateOf("") }
+    var isRecording by remember { mutableStateOf(false) }
+    var debouncedText by remember { mutableStateOf("") }
     val gradient = Brush.horizontalGradient(
         colors = listOf(
             Color(0xFF3AEDFF),
@@ -104,10 +94,7 @@ fun ChatScreen(
             Color(0xFFFF5757)
         )
     )
-    var text by remember { mutableStateOf("") }
-    var isRecording by remember { mutableStateOf(false) }
-    var debouncedText by remember { mutableStateOf("") }
-    val keyboardController = LocalSoftwareKeyboardController.current
+
     val speechRecognizer = remember {
         SpeechRecognizer.createSpeechRecognizer(context)
     }
@@ -211,13 +198,11 @@ fun ChatScreen(
             override fun onEvent(eventType: Int, params: Bundle?) {}
         }
     }
-
     LaunchedEffect(speechRecognizer) {
         speechRecognizer.setRecognitionListener(listener)
     }
     LaunchedEffect(text) {
         viewModel.loadMessages()
-        delay(300)
         debouncedText = text
     }
     Column(
@@ -242,10 +227,10 @@ fun ChatScreen(
             )
         } else {
             MessageList(
-                isTyping = isTyping,
                 userDetail = userDetail,
                 modifier = Modifier.weight(1f),
-                messageList = messageList
+                messageList = messageList,
+                viewModel = viewModel
             )
         }
         Surface(
@@ -316,7 +301,7 @@ fun ChatScreen(
                     ),
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            viewModel.sendMessage(text)
+                            viewModel.sendMessage(sessionId, text)
                             text = ""
                         }
                     ),
@@ -370,9 +355,8 @@ fun ChatScreen(
                     if (text.isNotEmpty()) {
                         IconButton(
                             onClick = {
-                                viewModel.sendMessage(text)
+                                viewModel.sendMessage(sessionId, text)
                                 text = ""
-                                keyboardController?.hide()
                             },
                             modifier = Modifier
                         ) {
@@ -389,144 +373,12 @@ fun ChatScreen(
     }
 }
 
-@Composable
-fun MessageList(
-    isTyping: Boolean,
-    userDetail: UserDetails?,
-    modifier: Modifier,
-    messageList: List<MessageModel>
-) {
-    val listState = rememberLazyListState()
-    val showArrow by remember {
-        derivedStateOf {
-            listState.firstVisibleItemIndex > 0
-        }
-    }
-    val coroutineScope = rememberCoroutineScope()
-    LazyColumn(
-        modifier.padding(10.dp),
-        reverseLayout = true,
-        state = listState
-    ) {
-        items(messageList.reversed()) {
-            MessageRow(
-                userDetail = userDetail,
-                messageModel = it
-            )
-        }
-        if (isTyping) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    DotsTyping()
-                }
-            }
-        }
-    }
 
-    if (showArrow) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp) // Padding to keep the icon above the screen's bottom edge
-        ) {
-            FloatingActionButton(
-                onClick = {
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(index = 0)
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter), // Center the button horizontally
-                shape = CircleShape,
-                containerColor = Color.White,
-                contentColor = Color.Black
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Scroll to bottom",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun MessageRow(userDetail: UserDetails?, messageModel: MessageModel) {
-    val isModel = messageModel.role == "model"
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .align(
-                        if (isModel) Alignment.BottomStart else Alignment.BottomEnd
-                    )
-                    .padding(
-                        start = if (isModel) 8.dp else 70.dp,
-                        end = if (isModel) 70.dp else 8.dp,
-                        top = 8.dp,
-                        bottom = 8.dp
-                    )
-                    .shadow(
-                        elevation = 3.dp,
-                        shape = RoundedCornerShape(40.dp),
-                        ambientColor = Color.White,
-                        spotColor = Color.White
-                    )
-                    .clip(RoundedCornerShape(50f))
-                    .background(if (isModel) Color(0xFF333333) else Color.LightGray)
-                    .padding(15.dp),
-
-                ) {
-                if (isModel) {
-                    Column {
-                        Image(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .size(40.dp),
-                            painter = painterResource(id = R.drawable.google),
-                            contentDescription = "Person",
-                        )
-
-                        SelectionContainer {
-                            Text(
-                                text = messageModel.messageModel,
-                                modifier = Modifier.padding(top = 10.dp),
-                                color = if (isModel) Color.White else Color.Black,
-                                fontWeight = FontWeight.W500
-                            )
-                        }
-                    }
-                } else {
-                    Row {
-                        AsyncImage(
-                            model = userDetail?.profileUrl,
-                            contentDescription = "Profile Image",
-                            modifier = Modifier
-                                .size(35.dp)
-                                .clip(CircleShape)
-                                .border(2.dp, Color.Transparent, CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-
-                        SelectionContainer {
-                            Text(
-                                text = messageModel.messageModel,
-                                modifier = Modifier.padding(start = 10.dp, top = 5.dp),
-                                color = if (isModel) Color.White else Color.Black,
-                                fontWeight = FontWeight.W500
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
+fun isValidImageUrl(url: String): Boolean {
+    return url.startsWith("http", ignoreCase = true) &&
+            (url.endsWith(".jpg", ignoreCase = true) ||
+                    url.endsWith(".jpeg", ignoreCase = true) ||
+                    url.endsWith(".png", ignoreCase = true) ||
+                    url.endsWith(".gif", ignoreCase = true) ||
+                    url.endsWith(".webp", ignoreCase = true))
 }

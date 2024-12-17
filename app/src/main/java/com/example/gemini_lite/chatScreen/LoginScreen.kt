@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -47,7 +46,6 @@ fun LoginScreen(
     val context = LocalContext.current
     val loggedInState by isLoggedIn(context).collectAsState(initial = false)
     val scope = rememberCoroutineScope()
-
     if (!loggedInState) {
         val gradient = Brush.horizontalGradient(
             colors = listOf(
@@ -56,7 +54,6 @@ fun LoginScreen(
                 Color(0xFFFF5757)  // Red
             )
         )
-
         val launcher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartActivityForResult()
         ) {
@@ -64,12 +61,10 @@ fun LoginScreen(
                 context = context,
                 scope = scope,
                 launcher = null,
-                login = { userName, userEmail, userProfilePic ->
+                login = { id, userName, userEmail, userProfilePic ->
                     if (userName != null && userEmail != null) {
-                        Log.d("GoogleSignIn", "Logged in User Name: $userName")
-                        Log.d("GoogleSignIn", "Logged in User Email: $userEmail")
                         if (userProfilePic != null) {
-                            viewModel.saveUserDetails(userName, userEmail, userProfilePic)
+                            viewModel.saveUserDetails(id, userName, userEmail, userProfilePic)
                         }
                         navController.navigate("home_Screen") {
                             popUpTo("login_screen") { inclusive = true }
@@ -94,7 +89,7 @@ fun LoginScreen(
                         }
                     },
                     fontSize = 48.sp,
-                    fontWeight = FontWeight.W400,
+                    fontWeight = FontWeight.W500,
                     modifier = Modifier.padding(start = 20.dp, top = 50.dp)
                 )
                 Column(
@@ -114,7 +109,7 @@ fun LoginScreen(
                             text = stringResource(id = textRes),
                             fontSize = 50.sp,
                             fontWeight = FontWeight.W400,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = Color.Black
                         )
                     }
                     Button(
@@ -123,19 +118,22 @@ fun LoginScreen(
                                 context = context,
                                 scope = scope,
                                 launcher = launcher,
-                                login = { userName, userEmail, userProfilePic ->
+                                login = { id, userName, userEmail, userProfilePic ->
                                     if (userName != null && userEmail != null) {
                                         Log.d("GoogleSignIn", "Logged in User Name: $userName")
                                         Log.d("GoogleSignIn", "Logged in User Email: $userEmail")
                                         if (userProfilePic != null) {
                                             viewModel.saveUserDetails(
+                                                id,
                                                 userName,
                                                 userEmail,
                                                 userProfilePic
                                             )
                                         }
                                         navController.navigate("home_Screen") {
-                                            popUpTo("login_screen") { inclusive = true }
+                                            popUpTo("login_screen") {
+                                                inclusive = true
+                                            }
                                         }
                                     } else {
                                         Log.e("GoogleSignIn", "Failed to fetch user details")
@@ -145,8 +143,10 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 10.dp, end = 50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Unspecified)
+                            .padding(top = 20.dp, end = 50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Gray
+                        )
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -155,16 +155,17 @@ fun LoginScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.google),
                                 contentDescription = "Google Icon",
-                                modifier = Modifier.size(34.dp)
+                                modifier = Modifier.size(38.dp)
                             )
-                            Text(text = "Google Sign in", color = Color.White)
+                            Text(
+                                text = "Google Sign in",
+                                fontSize = 23.sp,
+                                color = Color.White
+                            )
                         }
                     }
                 }
-
             }
-
-
         }
     }
 }
