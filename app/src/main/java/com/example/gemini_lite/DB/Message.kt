@@ -20,7 +20,7 @@ import androidx.room.PrimaryKey
 data class Messages(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0, // Unique message ID
-    var sessionId: Long, // Foreign key linking to ChatHistory
+    var sessionId: Long?, // Foreign key linking to ChatHistory
     val messageModel: String, // The message content
     val role: String, // "user" or "model"
     val timestamp: Long = System.currentTimeMillis() // Message timestamp

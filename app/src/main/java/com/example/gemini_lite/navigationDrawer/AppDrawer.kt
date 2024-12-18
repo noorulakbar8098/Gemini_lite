@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons.AutoMirrored.Filled
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -45,6 +46,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.gemini_lite.DB.ChatHistory
 import com.example.gemini_lite.DB.ProfileData
 import com.example.gemini_lite.chatScreen.ChatHomeScreen
 import com.example.gemini_lite.chatScreen.ChatViewModel
@@ -54,7 +56,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AppDrawer(
-    navController: NavController,
     viewModel: ChatViewModel,
     onDestinationClicked: (String) -> Unit,
     onImageOptionSelected: (ImageOption) -> Unit
@@ -79,12 +80,15 @@ fun AppDrawer(
                     onImageOptionSelected = { option ->
                         onImageOptionSelected(option)
                     })
-                DrawerMenuItems { destination ->
-                    coroutineScope.launch {
-                        drawerState.close()
-                        onDestinationClicked(destination)
+
+                DrawerMenuItems(
+                    onItemClicked = { destination ->
+                        coroutineScope.launch {
+                            drawerState.close()
+                            onDestinationClicked(destination)
+                        }
                     }
-                }
+                )
                 Spacer(modifier = Modifier.weight(1f))
             }
         },
@@ -184,11 +188,11 @@ fun DrawerHeader(
 }
 
 @Composable
-fun DrawerMenuItems(onItemClicked: (String) -> Unit) {
+fun DrawerMenuItems(
+    onItemClicked: (String) -> Unit,
+) {
     val menuItems = listOf(
-        "New Chat" to Icons.Default.Add,
-        "Chat History" to Icons.Default.MailOutline,
-        "Logout" to Filled.ExitToApp
+        "Logout" to Icons.Filled.ExitToApp
     )
 
     Column {
@@ -199,7 +203,6 @@ fun DrawerMenuItems(onItemClicked: (String) -> Unit) {
         }
     }
 }
-
 
 @Composable
 fun DrawerMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
@@ -220,10 +223,11 @@ fun DrawerMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.White,
+            color = Color.White
         )
     }
 }
+
 
 @Composable
 fun EditImageDialog(

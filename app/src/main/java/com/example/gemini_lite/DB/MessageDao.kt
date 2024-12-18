@@ -14,8 +14,22 @@ interface MessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChatHistory(chatHistory: ChatHistory): Long
 
+    @Query("SELECT id FROM chat_history ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLastUpdatedSessionId(): Long?
+
+
+    @Query("SELECT EXISTS(SELECT 1 FROM chat_history WHERE id = :sessionId)")
+    suspend fun isSessionPresent(sessionId: Long): Boolean
+
+    @Query("SELECT id FROM chat_history")
+    suspend fun getAllSessionIds(): List<Long>
+
+    @Query("SELECT * FROM chat_history")
+    suspend fun getAllChatHistory(): List<ChatHistory>
+
     @Insert
     suspend fun insertMessage(message: Messages)
+
 
     @Query("SELECT * FROM messages WHERE id = :chatHistoryId")
     suspend fun getMessagesForChatHistory(chatHistoryId: Long): List<Messages>

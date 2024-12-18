@@ -37,6 +37,8 @@ import androidx.navigation.NavController
 import com.example.gemini_lite.R
 import com.example.gemini_lite.common.GoogleSignInUtils
 import com.example.gemini_lite.common.isLoggedIn
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -120,8 +122,6 @@ fun LoginScreen(
                                 launcher = launcher,
                                 login = { id, userName, userEmail, userProfilePic ->
                                     if (userName != null && userEmail != null) {
-                                        Log.d("GoogleSignIn", "Logged in User Name: $userName")
-                                        Log.d("GoogleSignIn", "Logged in User Email: $userEmail")
                                         if (userProfilePic != null) {
                                             viewModel.saveUserDetails(
                                                 id,

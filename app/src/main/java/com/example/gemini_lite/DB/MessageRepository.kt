@@ -15,13 +15,26 @@ class MessageRepository(private val dao: MessageDao) {
         }
     }
 
+    suspend fun isSessionPresent(sessionId: Long): Boolean {
+        return dao.isSessionPresent(sessionId)
+    }
+
+    suspend fun getAllSessionIds(): List<Long> {
+        return dao.getAllSessionIds()
+    }
+
+    suspend fun getLastUpdatedSessionId(): Long? {
+        return dao.getLastUpdatedSessionId()
+    }
+
+    suspend fun getAllChatHistory(): List<ChatHistory> {
+        return dao.getAllChatHistory()
+    }
+
     suspend fun insertMessage(message: Messages) {
         dao.insertMessage(message)
     }
 
-    suspend fun getMessagesForHistory(chatHistoryId: Long): List<Messages> {
-        return dao.getMessagesForChatHistory(chatHistoryId)
-    }
 
     suspend fun getALlMessages(): List<Messages> {
         return dao.getAllMessages()

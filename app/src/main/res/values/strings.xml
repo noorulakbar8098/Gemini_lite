@@ -5,4 +5,8 @@
     <string name="gemini_text3">Supercharge</string>
     <string name="gemini_text4">your ideas</string>
     <string name="client_id">272145027274-gmo9sqdtcdpahumbo4ccmergdeou14hd.apps.googleusercontent.com</string>
+    <string name="gemini_1_5_flash">gemini-2.0-flash-exp</string>
+    <string name="logout">Logout</string>
+    <string name="loginScreen">login_screen</string>
+    <string name="home_screen">home_screen</string>
 </resources>

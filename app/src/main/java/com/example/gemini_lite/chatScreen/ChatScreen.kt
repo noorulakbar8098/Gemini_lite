@@ -81,12 +81,10 @@ fun ChatScreen(
     val context = LocalContext.current
     val sessionId by viewModel.sessionId.collectAsState()
     val messageList by viewModel.messageList.collectAsState()
-    val chatHistory by viewModel.chatHistories.collectAsState()
     val userDetail by viewModel.profileData.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
     var text by remember { mutableStateOf("") }
     var isRecording by remember { mutableStateOf(false) }
-    var debouncedText by remember { mutableStateOf("") }
     val gradient = Brush.horizontalGradient(
         colors = listOf(
             Color(0xFF3AEDFF),
@@ -203,7 +201,6 @@ fun ChatScreen(
     }
     LaunchedEffect(text) {
         viewModel.loadMessages()
-        debouncedText = text
     }
     Column(
         modifier = Modifier
@@ -236,12 +233,12 @@ fun ChatScreen(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 18.dp, start = 16.dp, end = 16.dp)
+                .padding(bottom = 1.dp, start = 16.dp, end = 16.dp)
                 .shadow(
                     elevation = 3.dp,
                     shape = RoundedCornerShape(20.dp),
-                    ambientColor = Color.Green, // White shadow color
-                    spotColor = Color.White // Additional white shadow color for spot light
+                    ambientColor = Color.Green,
+                    spotColor = Color.White
                 ),
             shape = RoundedCornerShape(16.dp),
             color = Color(0xFF333333)
@@ -293,7 +290,8 @@ fun ChatScreen(
                     onValueChange = { text = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .imePadding(),
                     cursorBrush = SolidColor(Color.White),
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done, // Set the action button to "Done"
@@ -301,7 +299,13 @@ fun ChatScreen(
                     ),
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            viewModel.sendMessage(sessionId, text)
+                            if (text.isNotEmpty() && text.trim().length > 4) {
+                            if (sessionId != null) {
+                                viewModel.sendMessage(sessionId, text)
+                            } else {
+                                viewModel.sendMessage(0, text)
+                            }
+                        }
                             text = ""
                         }
                     ),
@@ -352,11 +356,16 @@ fun ChatScreen(
                             tint = Color.White
                         )
                     }
-                    if (text.isNotEmpty()) {
+                    if (text.isNotEmpty() && text.trim().length > 4) {
                         IconButton(
                             onClick = {
-                                viewModel.sendMessage(sessionId, text)
+                                if (sessionId != null && sessionId > 1) {
+                                    viewModel.sendMessage(sessionId, text)
+                                } else {
+                                    viewModel.sendMessage(0, text)
+                                }
                                 text = ""
+                                keyboardController?.hide()
                             },
                             modifier = Modifier
                         ) {

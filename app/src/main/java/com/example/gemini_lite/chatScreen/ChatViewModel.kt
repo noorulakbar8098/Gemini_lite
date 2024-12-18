@@ -12,6 +12,7 @@ import com.example.gemini_lite.DB.ChatHistory
 import com.example.gemini_lite.DB.MessageRepository
 import com.example.gemini_lite.DB.Messages
 import com.example.gemini_lite.DB.ProfileData
+import com.example.gemini_lite.R
 import com.example.gemini_lite.common.clearLoginState
 import com.example.gemini_lite.common.constants.apiKey
 import com.example.gemini_lite.common.constants.pixelApiKey
@@ -33,24 +34,14 @@ import kotlin.random.Random
 class ChatViewModel(
     private val repository: MessageRepository, context: Context
 ) : ViewModel(), TextToSpeech.OnInitListener {
-    private val _messageList = MutableStateFlow<List<Messages>>(emptyList())
-    val messageList: StateFlow<List<Messages>> = _messageList.asStateFlow()
-
     private var tts: TextToSpeech? = null
     private var isTTSInitialized = false
-
-    private val _chatHistories = MutableStateFlow<List<ChatHistory>>(emptyList())
-    val chatHistories: StateFlow<List<ChatHistory>> = _chatHistories.asStateFlow()
-
-    private val _messages = MutableStateFlow<List<Messages>>(emptyList())
-    val messages: StateFlow<List<Messages>> = _messages.asStateFlow()
-
+    private val _messageList = MutableStateFlow<List<Messages>>(emptyList())
+    val messageList: StateFlow<List<Messages>> = _messageList.asStateFlow()
     private val _profileData = MutableStateFlow(ProfileData())
     val profileData: StateFlow<ProfileData> = _profileData.asStateFlow()
-
     private val _sessionId = MutableStateFlow<Long>(-1)
     val sessionId: StateFlow<Long> = _sessionId.asStateFlow()
-
     private val _profileImageUri = MutableStateFlow<String?>(null)
     val profileImageUri: StateFlow<String?> = _profileImageUri
 
@@ -61,24 +52,308 @@ class ChatViewModel(
     }
 
     private val generateModel: GenerativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
+        modelName = context.getString(R.string.gemini_1_5_flash),
         apiKey = apiKey
     )
 
-    fun startNewConversation() {
-        _sessionId.value = Random.nextLong(1000000000000, 9999999999999)
-    }
-
-
-    fun setProfileImage(ImageUrl: String) {
-        _profileImageUri.value = ImageUrl
-        Log.e("image", "ImageOption Uri: $profileImageUri")
+    private fun startNewConversation() {
         viewModelScope.launch {
-            val profileId = profileData.value.id
-            Log.e("image", "ImageOption Uri: $ImageUrl.toString()")
-            repository.updateProfileUrl(profileId, ImageUrl)
+            _sessionId.value = Random.nextLong(1, 100)
         }
     }
+
+
+    fun setProfileImage(imageUrl: String) {
+        _profileImageUri.value = imageUrl
+        viewModelScope.launch {
+            val profileId = profileData.value.id
+            repository.updateProfileUrl(profileId, imageUrl)
+        }
+    }
+
+    fun loadMessages() {
+        viewModelScope.launch {
+            getProfileDetails()
+            _profileData.value = withContext(Dispatchers.IO) {
+                repository.getProfileData()
+            }
+
+            _messageList.value = withContext(Dispatchers.IO) {
+                repository.getALlMessages()
+            }
+        }
+    }
+
+    private suspend fun getProfileDetails() {
+        try {
+            val profileId = profileData.value.id
+            if (profileId != -1) {
+                val savedUrl = repository.getProfileUrl(profileId)
+                _profileImageUri.value = savedUrl
+            } else {
+                val profileDetails = repository.getProfileData()
+                if (profileDetails != null) {
+                    _profileImageUri.value = profileDetails.profileUrl
+                } else {
+                    Log.e("Profile Details", "No profile details found in database.")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Error", "Error fetching profile details: ${e.message}")
+        }
+    }
+
+    fun clearChatHistory() {
+        viewModelScope.launch {
+            _messageList.value = emptyList()
+        }
+    }
+
+
+    fun handleLogout(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            clearLoginState(context)
+            repository.clearChatHistory()
+            repository.clearMessages()
+            repository.clearLoginCred()
+        }
+    }
+
+
+    private fun isImageRequest(userInput: String, modelResponse: String): Boolean {
+        val keywords = listOf("images", "photo", "picture", "images")
+        return keywords.any {
+            userInput.contains(
+                it,
+                ignoreCase = true
+            ) || modelResponse.contains(it, ignoreCase = true)
+        }
+    }
+
+    private suspend fun fetchImageFromPexels(query: String): String? {
+        val apiKey = pixelApiKey
+        val url = "https://api.pexels.com/v1/search?query=$query&per_page=1"
+        return withContext(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val request = Request.Builder()
+                    .url(url)
+                    .addHeader("Authorization", apiKey)
+                    .build()
+
+                val response = client.newCall(request).execute()
+                val responseBody = response.body?.string()
+
+                if (responseBody != null) {
+                    val json = JSONObject(responseBody)
+                    val photos = json.getJSONArray("photos")
+                    if (photos.length() > 0) {
+                        val firstPhoto = photos.getJSONObject(0)
+                        return@withContext firstPhoto.getJSONObject("src").getString("original")
+                    }
+                }
+                null
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+
+    suspend fun checkSessionExists(sessionId: Long): Boolean {
+        return withContext(Dispatchers.IO) {
+            repository.isSessionPresent(sessionId)
+        }
+    }
+
+
+    fun getAllSessions(onResult: (List<Long>) -> Unit) {
+        viewModelScope.launch {
+            val sessionIds = repository.getAllSessionIds()
+            onResult(sessionIds)
+        }
+    }
+
+    @RequiresApi(VERSION_CODES.VANILLA_ICE_CREAM)
+    fun sendMessage(sessionId: Long, messageContent: String) {
+        viewModelScope.launch {
+            var parentId: Long? = null
+            try {
+                val isPresent = checkSessionExists(sessionId)
+                if (!isPresent) {
+                    clearChatHistory()
+                    if (sessionId > 0) {
+                        parentId = withContext(Dispatchers.IO) {
+                            repository.getOrInsertChatHistory(sessionId)
+                        }
+                    }
+                } else {
+                    parentId = if (sessionId > 0) {
+                        withContext(Dispatchers.IO) {
+                            repository.getOrInsertChatHistory(sessionId)
+                        }
+                    } else {
+                        withContext(Dispatchers.IO) {
+                            repository.getLastUpdatedSessionId()
+                        }
+                    }
+                }
+
+                val userMessage = Messages(
+                    sessionId = parentId,
+                    messageModel = messageContent,
+                    role = "user"
+                )
+                withContext(Dispatchers.IO) {
+                    repository.insertMessage(userMessage)
+                }
+                addMessageToUI(userMessage)
+
+                // Placeholder message
+                val placeholderMessage = Messages(
+                    sessionId = parentId,
+                    messageModel = "Generating...",
+                    role = "model"
+                )
+                withContext(Dispatchers.Main) {
+                    addMessageToUI(placeholderMessage)
+                }
+
+                val chatResponse = withContext(Dispatchers.IO) {
+                    generateModel.startChat(
+                        history = _messageList.value.map {
+                            content(it.role) { text(it.messageModel) }
+                        }.toList()
+                    )
+                }
+
+                val response = chatResponse.sendMessage(messageContent)
+                val responseText = response.text?.replace("*", "") ?: "No response."
+                if (isImageRequest(messageContent, responseText)) {
+                    handleImageRequest(parentId, responseText)
+                } else if (isVideoRequest(messageContent)) {
+                    handleVideoRequest(parentId, messageContent)
+                } else {
+                    handleTextResponse(parentId, responseText)
+                }
+
+            } catch (e: Exception) {
+                handleException(sessionId, e.message)
+            }
+        }
+    }
+
+    fun isVideoRequest(messageContent: String): Boolean {
+        val generalKeywords = listOf(
+            "video", "watch", "tutorial", "course", "youtube", "lecture", "learn", "education"
+        )
+        return generalKeywords.any { keyword ->
+            messageContent.contains(keyword, ignoreCase = true)
+        }
+    }
+
+    suspend fun handleVideoRequest(sessionId: Long?, messageContent: String) {
+        val videoLink = getVideoReference(messageContent)
+        val videoMessage = Messages(
+            sessionId = sessionId,
+            messageModel = videoLink ?: "Sorry, I couldn't find a video reference for your query.",
+            role = "model"
+        )
+        removeLastPlaceholderFromUI()
+        withContext(Dispatchers.IO) {
+            repository.insertMessage(videoMessage)
+        }
+        withContext(Dispatchers.Main) {
+            addMessageToUI(videoMessage)
+        }
+    }
+
+    private fun getVideoReference(query: String): String? {
+        val videoReferences = mapOf(
+            "Jetpack Compose tutorial" to "https://www.youtube.com/watch?v=8q5qI3Ah9Us&list=PLRKyZvuMYSIO9sadcCwR0DR8UPi9bQlev",
+            "Kotlin basics" to "https://www.youtube.com/watch?v=e7WIPwRd2s8&list=PLlxmoA0rQ-Lw5k_QCqVl3rsoJOnb_00UV",
+            "MVVM architecture" to "https://www.youtube.com/watch?v=Xg_WMBV6cWM&list=PLUhfM8afLE_O6UgUgslEOXbeXC89j_aOM",
+            "Android Development" to "https://www.youtube.com/watch?v=fis26HvvDII",
+            "How to Make an Android App for Beginners" to "https://www.youtube.com/watch?v=EOfCEhWq8sg",
+            "Android Performance Improvements" to "https://www.youtube.com/watch?v=epkAPnF5qrk&t=355s",
+            "Java Programming Language" to "https://www.youtube.com/watch?v=eIrMbAQSU34"
+        )
+
+        val matchedScores = videoReferences.map { (key, url) ->
+            val score = calculateMatchScore(query, key)
+            key to Pair(url, score)
+        }
+        return matchedScores.maxByOrNull { it.second.second }?.second?.first
+    }
+
+    private fun calculateMatchScore(query: String, keyword: String): Int {
+        return keyword.split(" ").sumOf { word ->
+            if (query.contains(word, ignoreCase = true)) {
+                10 * word.length // Assign higher scores to longer, more specific words
+            } else 0
+        }
+    }
+
+    private suspend fun handleTextResponse(sessionId: Long?, responseText: String) {
+        val modelResponse = Messages(
+            sessionId = sessionId,
+            messageModel = responseText,
+            role = "model"
+        )
+        removeLastPlaceholderFromUI()
+        withContext(Dispatchers.IO) {
+            repository.insertMessage(modelResponse)
+        }
+        withContext(Dispatchers.Main) {
+            addMessageToUI(modelResponse)
+        }
+    }
+
+    private suspend fun handleImageRequest(sessionId: Long?,responseText: String) {
+        val imageUrl = fetchImageFromPexels(responseText)
+
+        if (imageUrl != null) {
+            val imageResponse = Messages(
+                sessionId = sessionId,
+                messageModel = imageUrl,
+                role = "model"
+            )
+            removeLastPlaceholderFromUI()
+            withContext(Dispatchers.IO) {
+                repository.insertMessage(imageResponse)
+            }
+            withContext(Dispatchers.Main) {
+                addMessageToUI(imageResponse)
+            }
+        } else {
+            val fallbackResponse = Messages(
+                sessionId = _sessionId.value,
+                messageModel = "Sorry, I couldn't find an image for that request.",
+                role = "model"
+            )
+            withContext(Dispatchers.IO) {
+                repository.insertMessage(fallbackResponse)
+            }
+            withContext(Dispatchers.Main) {
+                addMessageToUI(fallbackResponse)
+            }
+        }
+    }
+
+    private suspend fun handleException(sessionId: Long, message: String?) {
+        val errorMessage = Messages(
+            sessionId = sessionId,
+            messageModel = "Error: ${message ?: "Unknown error"}",
+            role = "model"
+        )
+        withContext(Dispatchers.IO) {
+            repository.insertMessage(errorMessage)
+        }
+        withContext(Dispatchers.Main) {
+            addMessageToUI(errorMessage)
+        }
+    }
+
 
     fun saveUriToFile(context: Context, uri: Uri): String? {
         return try {
@@ -154,187 +429,6 @@ class ChatViewModel(
         }
     }
 
-    fun loadMessages() {
-        viewModelScope.launch {
-            _profileData.value = withContext(Dispatchers.IO) {
-                repository.getProfileData()
-            }
-
-            _messageList.value = withContext(Dispatchers.IO) {
-                repository.getALlMessages()
-            }
-
-            viewModelScope.launch {
-                try {
-                    val profileId = profileData.value.id // Default fallback ID
-
-                    if (profileId != -1) {
-                        // Fetch profile image if profile ID is valid
-                        val savedUrl = repository.getProfileUrl(profileId)
-                        Log.e("image from DB", "ImageOption Uri: $savedUrl")
-                        _profileImageUri.value = savedUrl
-                    } else {
-                        // ID is not available; fetch all profile details
-                        val profileDetails = repository.getProfileData()
-                        if (profileDetails != null) {
-                            Log.e("Profile Details", "Fetched all profile details: $profileDetails")
-                            _profileImageUri.value = profileDetails.profileUrl
-                        } else {
-                            Log.e("Profile Details", "No profile details found in database.")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("Error", "Error fetching profile details: ${e.message}")
-                }
-            }
-
-        }
-    }
-
-    enum class ImageOption {
-        Camera, Gallery
-    }
-
-    fun clearChatHistory() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _messageList.value = emptyList()
-        }
-    }
-
-    fun handleLogout(context: Context) {
-        viewModelScope.launch(Dispatchers.IO) {
-            clearLoginState(context)
-            repository.clearChatHistory()
-            repository.clearMessages()
-            repository.clearLoginCred()
-        }
-    }
-
-    private fun isImageRequest(userInput: String, modelResponse: String): Boolean {
-        val keywords = listOf("image", "photo", "picture", "send me", "show me")
-        return keywords.any {
-            userInput.contains(
-                it,
-                ignoreCase = true
-            ) || modelResponse.contains(it, ignoreCase = true)
-        }
-    }
-
-    private suspend fun fetchImageFromPexels(query: String): String? {
-        val apiKey = pixelApiKey
-        val url = "https://api.pexels.com/v1/search?query=$query&per_page=1"
-
-        return withContext(Dispatchers.IO) {
-            try {
-                val client = OkHttpClient()
-                val request = Request.Builder()
-                    .url(url)
-                    .addHeader("Authorization", apiKey)
-                    .build()
-
-                val response = client.newCall(request).execute()
-                val responseBody = response.body?.string()
-
-                if (responseBody != null) {
-                    val json = JSONObject(responseBody)
-                    val photos = json.getJSONArray("photos")
-                    if (photos.length() > 0) {
-                        val firstPhoto = photos.getJSONObject(0)
-                        return@withContext firstPhoto.getJSONObject("src").getString("original")
-                    }
-                }
-                null
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
-
-    @RequiresApi(VERSION_CODES.VANILLA_ICE_CREAM)
-    fun sendMessage(sessionId: Long, messageContent: String) {
-        viewModelScope.launch {
-            try {
-                val parentId = repository.getOrInsertChatHistory(sessionId)
-                val userMessage = Messages(
-                    sessionId = parentId,
-                    messageModel = messageContent,
-                    role = "user"
-                )
-                withContext(Dispatchers.Main) {
-                    repository.insertMessage(userMessage)
-                    addMessageToUI(userMessage)
-                }
-                val placeholderMessage = Messages(
-                    sessionId = sessionId,
-                    messageModel = "Generating...",
-                    role = "model"
-                )
-                withContext(Dispatchers.Main) {
-                    addMessageToUI(placeholderMessage) // Placeholder for the model response
-                }
-                val chatResponse = withContext(Dispatchers.IO) {
-                    generateModel.startChat(
-                        history = _messageList.value.map {
-                            content(it.role) { text(it.messageModel) }
-                        }
-                            .toList()
-                    )
-                }
-                val response = withContext(Dispatchers.Main) {
-                    chatResponse.sendMessage(messageContent)
-                }
-                val responseText = response.text?.replace("*", "") ?: "No response."
-
-                if (isImageRequest(messageContent, responseText)) {
-                    val imageUrl = fetchImageFromPexels(messageContent)
-                    if (imageUrl != null) {
-                        val imageResponse = Messages(
-                            sessionId = _sessionId.value,
-                            messageModel = imageUrl,
-                            role = "model"
-                        )
-                        removeLastPlaceholderFromUI()
-                        addMessageToUI(imageResponse)
-                        repository.insertMessage(imageResponse)
-                    } else {
-                        val fallbackResponse = Messages(
-                            sessionId = _sessionId.value,
-                            messageModel = "Sorry, I couldn't find an image for that request.",
-                            role = "model"
-                        )
-                        addMessageToUI(fallbackResponse)
-                        repository.insertMessage(fallbackResponse)
-                    }
-                } else {
-                    val modelResponse = Messages(
-                        sessionId = sessionId,
-                        messageModel = responseText,
-                        role = "model"
-                    )
-                    Log.e("Response", "${response.text}")
-                    withContext(Dispatchers.IO) {
-                        repository.insertMessage(modelResponse)
-                    }
-                    withContext(Dispatchers.Main) {
-                        removeLastPlaceholderFromUI()
-                        addMessageToUI(modelResponse)
-                    }
-                }
-            } catch (e: Exception) {
-                val errorMessage = Messages(
-                    sessionId = sessionId,
-                    messageModel = "Error: ${e.message}",
-                    role = "model"
-                )
-                repository.insertMessage(errorMessage)
-                withContext(Dispatchers.Main) {
-                    removeLastPlaceholderFromUI()
-                    addMessageToUI(errorMessage)
-                }
-            }
-        }
-    }
-
     private fun removeLastPlaceholderFromUI() {
         if (_messageList.value.isNotEmpty() && _messageList.value.last().role == "model" &&
             _messageList.value.last().messageModel == "Generating..."
@@ -346,4 +440,9 @@ class ChatViewModel(
     private fun addMessageToUI(message: Messages) {
         _messageList.value += message
     }
+
+    enum class ImageOption {
+        Camera, Gallery
+    }
 }
+

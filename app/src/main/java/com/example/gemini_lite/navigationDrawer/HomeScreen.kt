@@ -8,14 +8,18 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.example.gemini_lite.R
 import com.example.gemini_lite.chatScreen.ChatViewModel
 import com.example.gemini_lite.chatScreen.ChatViewModel.ImageOption
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun HomeScreen(
@@ -24,18 +28,23 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var isCameraActionPending by remember { mutableStateOf(false) }
+    var isGalleryActionPending by remember { mutableStateOf(false) }
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { isSuccess ->
         if (isSuccess) {
-            viewModel.setProfileImage(capturedImageUri.toString())
-            Log.d("CameraOption", "Image captured and sent to ViewModel")
+            capturedImageUri?.let { uri ->
+                viewModel.setProfileImage(uri.toString())
+                Log.d("CameraOption", "Image captured and sent to ViewModel")
+            }
         } else {
             Log.e("CameraOption", "Camera capture failed or cancelled.")
         }
+        capturedImageUri =  null
+        isCameraActionPending = false
     }
 
-    // Generate temporary URI to store camera image
     fun createImageUri(context: Context): Uri? {
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.TITLE, "temp_image_${System.currentTimeMillis()}")
@@ -58,38 +67,41 @@ fun HomeScreen(
             Log.d("GalleryLauncher", "Selected Image URI: $uri")
             val filePath = viewModel.saveUriToFile(context, uri)
             if (filePath != null) {
-                viewModel.setProfileImage(filePath) // Save path
+                viewModel.setProfileImage(filePath)
             }
         } else {
             Log.e("GalleryLauncher", "No image selected.")
         }
+        capturedImageUri =  null
+        isGalleryActionPending = false
     }
 
     fun handleImageOption(option: ImageOption) {
         when (option) {
             ImageOption.Camera -> {
-                Log.d("ImageOption", "Camera option selected")
-                prepareCamera()
+                if (!isCameraActionPending) {
+                    isCameraActionPending = true
+                    prepareCamera()
+                }
             }
-
             ImageOption.Gallery -> {
-                Log.d("ImageOption", "Launching gallery...")
-                galleryLauncher.launch("image/*")
+                if (!isGalleryActionPending) {
+                    isGalleryActionPending = true
+                    galleryLauncher.launch("image/*")
+                }
             }
         }
     }
 
+
     AppDrawer(
-        navController = navController,
         viewModel = viewModel,
         onDestinationClicked = { destination ->
-            if (destination == "Logout") {
-                navController.navigate("login_screen") {
-                    popUpTo("home_screen") { inclusive = true }
+            if (destination == context.getString(R.string.logout)) {
+                navController.navigate(context.getString(R.string.loginScreen)) {
+                    popUpTo(context.getString(R.string.home_screen)) { inclusive = true }
                 }
                 viewModel.handleLogout(context)
-                viewModel.clearChatHistory()
-            } else if (destination == "New Chat") {
                 viewModel.clearChatHistory()
             }
         },

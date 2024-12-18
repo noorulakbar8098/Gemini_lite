@@ -7,8 +7,8 @@ import androidx.room.TypeConverters
 import com.example.gemini_lite.common.Converters
 
 @Database(
-    entities = [Messages::class, ChatHistory::class, MessageModel::class, ProfileData::class],
-    version = 1,
+    entities = [Messages::class, ChatHistory::class, ProfileData::class],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

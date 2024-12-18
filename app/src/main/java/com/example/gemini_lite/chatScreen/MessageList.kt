@@ -1,5 +1,12 @@
 package com.example.gemini_lite.chatScreen
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.util.Patterns
+import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.gemini_lite.DB.Messages
 import com.example.gemini_lite.DB.ProfileData
@@ -34,6 +42,7 @@ fun MessageList(
     messageList: List<Messages>,
     viewModel: ChatViewModel
 ) {
+    val context = LocalContext.current
     val profileImageUri by viewModel.profileImageUri.collectAsState()
     val listState = rememberLazyListState()
     val showArrow by remember {
@@ -55,7 +64,8 @@ fun MessageList(
                 onSoundIconClick = {
                     val selectedLanguage = MutableStateFlow("en")
                     viewModel.speakResponse(it, selectedLanguage.value)
-                }
+                },
+                onVideoClick = { videoUrl -> openYouTubeVideo(context, videoUrl) }
             )
         }
     }
@@ -87,3 +97,24 @@ fun MessageList(
         }
     }
 }
+
+fun openYouTubeVideo(context: Context, videoUrl: String) {
+    if (Patterns.WEB_URL.matcher(videoUrl).matches() &&
+        (videoUrl.contains("youtube.com") || videoUrl.contains("youtu.be"))) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))
+        intent.setPackage("com.google.android.youtube") // Explicitly target YouTube app
+
+        try {
+            context.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            // Fallback to browser if YouTube app is not installed
+            intent.setPackage(null)
+            context.startActivity(intent)
+        }
+    } else {
+        // Handle invalid or non-YouTube URLs
+        Toast.makeText(context, "Invalid YouTube video URL.", Toast.LENGTH_SHORT).show()
+    }
+}
+
+
