@@ -177,39 +177,18 @@ class ChatViewModel(
     @RequiresApi(VERSION_CODES.VANILLA_ICE_CREAM)
     fun sendMessage(sessionId: Long, messageContent: String) {
         viewModelScope.launch {
-            var parentId: Long? = null
             try {
-                val isPresent = checkSessionExists(sessionId)
-                if (!isPresent) {
-                    clearChatHistory()
-                    if (sessionId > 0) {
-                        parentId = withContext(Dispatchers.IO) {
-                            repository.getOrInsertChatHistory(sessionId)
-                        }
-                    }
-                } else {
-                    parentId = if (sessionId > 0) {
-                        withContext(Dispatchers.IO) {
-                            repository.getOrInsertChatHistory(sessionId)
-                        }
-                    } else {
-                        withContext(Dispatchers.IO) {
-                            repository.getLastUpdatedSessionId()
-                        }
-                    }
-                }
+                val parentId = determineParentId(sessionId)
 
                 val userMessage = Messages(
                     sessionId = parentId,
                     messageModel = messageContent,
                     role = "user"
                 )
-                withContext(Dispatchers.IO) {
-                    repository.insertMessage(userMessage)
-                }
+                saveUserMessage(userMessage)
+
                 addMessageToUI(userMessage)
 
-                // Placeholder message
                 val placeholderMessage = Messages(
                     sessionId = parentId,
                     messageModel = "Generating...",
@@ -219,29 +198,65 @@ class ChatViewModel(
                     addMessageToUI(placeholderMessage)
                 }
 
-                val chatResponse = withContext(Dispatchers.IO) {
-                    generateModel.startChat(
-                        history = _messageList.value.map {
-                            content(it.role) { text(it.messageModel) }
-                        }.toList()
-                    )
-                }
-
-                val response = chatResponse.sendMessage(messageContent)
-                val responseText = response.text?.replace("*", "") ?: "No response."
-                if (isImageRequest(messageContent, responseText)) {
-                    handleImageRequest(parentId, responseText)
-                } else if (isVideoRequest(messageContent)) {
-                    handleVideoRequest(parentId, messageContent)
-                } else {
-                    handleTextResponse(parentId, responseText)
-                }
+                val responseText = fetchChatResponse(messageContent)
+                handleResponse(parentId, responseText, messageContent)
 
             } catch (e: Exception) {
                 handleException(sessionId, e.message)
             }
         }
     }
+
+    /**
+     * Determines whether a session exists and fetches/initializes chat history accordingly.
+     */
+    private suspend fun determineParentId(sessionId: Long): Long? {
+        return withContext(Dispatchers.IO) {
+            if (!checkSessionExists(sessionId)) {
+                clearChatHistory()
+                if (sessionId > 0) repository.getOrInsertChatHistory(sessionId)
+                else null
+            } else {
+                if (sessionId > 0) repository.getOrInsertChatHistory(sessionId)
+                else repository.getLastUpdatedSessionId()
+            }
+        }
+    }
+
+    /**
+     * Saves the user message to the database.
+     */
+    private suspend fun saveUserMessage(userMessage: Messages) {
+        withContext(Dispatchers.IO) {
+            repository.insertMessage(userMessage)
+        }
+    }
+
+    /**
+     * Fetches chat response after sending message to the model.
+     */
+    private suspend fun fetchChatResponse(messageContent: String): String {
+        val chatResponse = withContext(Dispatchers.IO) {
+            generateModel.startChat(
+                history = _messageList.value.map { content(it.role) { text(it.messageModel) } }.toList()
+            )
+        }
+
+        val response = chatResponse.sendMessage(messageContent)
+        return response.text?.replace("*", "") ?: "No response."
+    }
+
+    /**
+     * Handles the response by determining if it's text, image, or video-based.
+     */
+    private suspend fun handleResponse(parentId: Long?, responseText: String, userMessage: String) {
+        when {
+            isImageRequest(userMessage, responseText) -> handleImageRequest(parentId, responseText)
+            isVideoRequest(userMessage) -> handleVideoRequest(parentId, userMessage)
+            else -> handleTextResponse(parentId, responseText)
+        }
+    }
+
 
     fun isVideoRequest(messageContent: String): Boolean {
         val generalKeywords = listOf(
@@ -311,7 +326,6 @@ class ChatViewModel(
 
     private suspend fun handleImageRequest(sessionId: Long?,responseText: String) {
         val imageUrl = fetchImageFromPexels(responseText)
-
         if (imageUrl != null) {
             val imageResponse = Messages(
                 sessionId = sessionId,

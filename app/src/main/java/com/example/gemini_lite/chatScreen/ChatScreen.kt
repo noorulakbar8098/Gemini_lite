@@ -212,7 +212,7 @@ fun ChatScreen(
         if (messageList.isEmpty()) {
             Text(
                 modifier = Modifier
-                    .padding(top = 30.dp)
+                    .padding(top = 0.dp)
                     .fillMaxWidth(),
                 text = "What can I help with?",
                 style = TextStyle(
